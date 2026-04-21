@@ -124,3 +124,36 @@ def _leaderboard_sync(limit: int = 100) -> list[dict[str, Any]]:
 
 async def apps_leaderboard(limit: int = 100) -> list[dict[str, Any]]:
     return await asyncio.to_thread(_leaderboard_sync, limit)
+
+
+def _find_by_app_id_sync(app_id: str) -> dict[str, Any] | None:
+    """Return the most recent saved scoring for this app_id across all runs.
+
+    Used to dedupe re-uploads: if an app was already evaluated, we reuse
+    its score instead of paying for OpenAI again. Returns None if the
+    app_id has never been scored, or if the prior attempt failed.
+    """
+    if not app_id:
+        return None
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT id, created_at, payload_json FROM runs ORDER BY id DESC"
+        ).fetchall()
+    for row in rows:
+        payload = json.loads(row["payload_json"])
+        for r in payload.get("results", []):
+            sub = r.get("submission") or {}
+            if (sub.get("app_id") or "").strip() == app_id.strip():
+                # Skip entries where scoring errored out so they get retried
+                if r.get("error") or r.get("fetch_error"):
+                    continue
+                return {
+                    **r,
+                    "_source_run_id": row["id"],
+                    "_source_created_at": row["created_at"],
+                }
+    return None
+
+
+async def find_by_app_id(app_id: str) -> dict[str, Any] | None:
+    return await asyncio.to_thread(_find_by_app_id_sync, app_id)

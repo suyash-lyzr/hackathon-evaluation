@@ -223,11 +223,20 @@
       const isTop = r.rank === 1;
       const hasErr = !!r.fetch_error;
       const score = r.final_score ?? r.raw_total ?? 0;
+      const reusedFrom = r.reused_from_run_id;
+      const isReused = "reused_from_run_id" in r;
+      let reusedBadge = "";
+      if (isReused) {
+        const tip = reusedFrom != null
+          ? `Reused score from run #${reusedFrom}`
+          : `Reused score from earlier row in this batch`;
+        reusedBadge = `<span class="reused-badge" title="${esc(tip)}">↻ reused</span>`;
+      }
       return `
         <tr class="${hasErr ? "error-row" : ""}">
           <td class="rank-cell ${isTop ? "top" : ""}">#${r.rank}</td>
           <td class="team-cell">
-            <div class="team-name">${esc(s.team_name || "Unknown team")}${hasErr ? `<span class="error-badge">no app</span>` : ""}</div>
+            <div class="team-name">${esc(s.team_name || "Unknown team")}${hasErr ? `<span class="error-badge">no app</span>` : ""}${reusedBadge}</div>
             <div class="team-project">${esc(s.project_title || "—")}</div>
           </td>
           <td class="score-cell sub">${pickScore(sc,"problem_clarity")}</td>

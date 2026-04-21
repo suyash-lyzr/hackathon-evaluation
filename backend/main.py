@@ -113,6 +113,22 @@ async def _evaluate_one(submission: dict) -> dict:
     }
 
 
+def _reuse_result(sub: dict, prev: dict, source_run_id: int | None) -> dict:
+    """Build a result entry that reuses a prior scoring but keeps the current submission metadata."""
+    return {
+        "submission": sub,
+        "app_context": prev.get("app_context"),
+        "fetch_error": prev.get("fetch_error"),
+        "scores": prev.get("scores", {}),
+        "total": prev.get("total", 0),
+        "verdict": prev.get("verdict", ""),
+        "strengths": prev.get("strengths", []),
+        "weaknesses": prev.get("weaknesses", []),
+        "red_flags": prev.get("red_flags", []),
+        "reused_from_run_id": source_run_id,  # None = deduped within this batch
+    }
+
+
 @app.post("/api/evaluate")
 async def evaluate(file: UploadFile = File(...)):
     if not os.getenv("OPENAI_API_KEY"):
@@ -127,18 +143,57 @@ async def evaluate(file: UploadFile = File(...)):
     if not submissions:
         raise HTTPException(status_code=400, detail="no rows found in xlsx")
 
-    logger.info(f"Evaluating {len(submissions)} submissions")
+    # First occurrence of each app_id in this batch → that's the canonical row to score
+    first_idx_for_app: dict[str, int] = {}
+    for i, sub in enumerate(submissions):
+        aid = (sub.get("app_id") or "").strip()
+        if aid and aid not in first_idx_for_app:
+            first_idx_for_app[aid] = i
 
-    # Bounded concurrency so we don't hammer OpenAI or Mongo
+    # Check DB for previous scorings of each unique app_id (parallel, cheap)
+    unique_app_ids = list(first_idx_for_app.keys())
+    db_hits = await asyncio.gather(*(store.find_by_app_id(aid) for aid in unique_app_ids))
+    db_hit_for: dict[str, dict] = {aid: hit for aid, hit in zip(unique_app_ids, db_hits) if hit}
+
+    # Decide which indices need fresh OpenAI scoring
+    need_scoring_idx: list[int] = []
+    for i, sub in enumerate(submissions):
+        aid = (sub.get("app_id") or "").strip()
+        if aid and aid in db_hit_for:
+            continue  # reuse from DB
+        if aid and first_idx_for_app[aid] != i:
+            continue  # duplicate within this batch — will reuse the first occurrence
+        need_scoring_idx.append(i)
+
+    reused_db = sum(1 for s in submissions if (s.get("app_id") or "").strip() in db_hit_for)
+    reused_batch = len(submissions) - len(need_scoring_idx) - reused_db
+    logger.info(
+        f"Evaluating {len(submissions)} submissions — "
+        f"{len(need_scoring_idx)} fresh, {reused_db} reused-from-DB, {reused_batch} deduped-in-batch"
+    )
+
+    # Score the fresh ones in parallel
     sem = asyncio.Semaphore(5)
 
-    async def bounded(sub: dict):
+    async def bounded(idx: int):
         async with sem:
-            return await _evaluate_one(sub)
+            return idx, await _evaluate_one(submissions[idx])
 
-    results = await asyncio.gather(*(bounded(s) for s in submissions))
+    scored = dict(await asyncio.gather(*(bounded(i) for i in need_scoring_idx)))
+
+    # Assemble final results in the original row order
+    results: list[dict] = []
+    for i, sub in enumerate(submissions):
+        aid = (sub.get("app_id") or "").strip()
+        if aid and aid in db_hit_for:
+            results.append(_reuse_result(sub, db_hit_for[aid], source_run_id=db_hit_for[aid].get("_source_run_id")))
+        elif aid and first_idx_for_app[aid] != i:
+            canonical = scored[first_idx_for_app[aid]]
+            results.append(_reuse_result(sub, canonical, source_run_id=None))
+        else:
+            results.append(scored[i])
+
     results = normalize_batch(results)
-    # Final: sorted by rank
     results.sort(key=lambda r: r.get("rank", 9999))
 
     payload = {
