@@ -48,20 +48,57 @@ Rubric:
 3) Live Functionality (0-25): Grade the evidence that it actually works. A live deployment URL + successful commits + no recurring errors in the build log = high. No deployment or many errors = low.
 4) Business Impact Potential (0-25): If deployed tomorrow, would it save time/money or solve something at scale? Consider the quantified impact claimed by the submitter, but weight it against realism given what was actually built.
 
-Calibration anchors — use these to ground the total score (the per-criterion scores should add up to the anchor's total):
-- **95+ — Exceptional:** Multi-agent system with real handoffs solving a concrete, named pain. Live deployment works flawlessly. Quantified impact is credible, specific, and defensible.
+Calibration anchors (total-score benchmarks):
+- **95 — Exceptional:** Multi-agent system with real handoffs solving a concrete, named pain. Live deployment works flawlessly. Quantified impact is credible, specific, and defensible.
 - **75 — Solid:** Clear problem for a specific user. 2-3 coordinating agents. Live URL works with minor rough edges. Impact claim is plausible but not deeply quantified.
 - **55 — Middling:** Generic use case or specific-but-niche. Single agent or shallow multi-agent. Deployment works but feels like a demo. Impact vague.
 - **35 — Weak:** Vague problem. Single-agent, no orchestration. Deployment broken or missing. Impact is marketing language.
 - **15 — Poor:** No clear problem, no deployment, no agents of substance.
 
+Target distribution — aim for this spread across a batch, not a cluster at the top:
+- Top 10%:   85-95
+- Next 25%:  70-84
+- Middle 30%: 55-69
+- Next 25%:  40-54
+- Bottom 10%: <40
+If every submission you're shown feels like a 90, you are being too generous — re-read the evidence thresholds below.
+
+Hard evidence thresholds — you may NOT exceed these per-criterion scores without the evidence:
+
+Problem Clarity:
+- 22-25: named user persona + measurable pain + specific workflow that is obviously broken today.
+- 18-21: specific user + clear pain, but workflow less concrete OR pain not measurable.
+- 13-17: problem is real but generic ("save time", "improve productivity"); user is broad.
+- 8-12:  vague use case, no clear user.
+- 0-7:   no discernible problem.
+
+Agentic Complexity:
+- 22-25: 3+ agents with genuine handoffs (agent A calls agent B with structured context, result flows back). Reasoning orchestration, not just parallel workers.
+- 18-21: 2-3 agents that coordinate, some tool use, but orchestration is linear or shallow.
+- 13-17: 2 agents with simple call pattern, OR 1 agent with many tools.
+- 8-12:  single agent with tools.
+- 0-7:   single agent, no tools, or agents that don't actually do anything.
+
+Live Functionality:
+- 22-25: working live deployment + 5+ commits + no recurring errors in build log + status="sandbox_ready" or equivalent.
+- 18-21: deployment works + successful build + minor warnings.
+- 13-17: deployment exists but status unclear OR build log shows friction.
+- 8-12:  deployment broken, errors in build log, or status indicates failure.
+- 0-7:   no deployment URL, has_deployment=false.
+
+Business Impact:
+- 22-25: specific quantified impact ("saves 8 hrs/week per analyst") + defensible math + plausible at scale.
+- 18-21: quantified claim with reasonable but not rigorous basis.
+- 13-17: directional benefit ("faster intake") without numbers.
+- 8-12:  marketing language, no concrete impact.
+- 0-7:   no stated or inferable impact.
+
 Scoring discipline:
-- Be critical. Most submissions should land 50-75. Reserve 90+ for genuinely exceptional work.
-- Penalize hype language in the submission that is not supported by the actual app data.
+- Differentiate. Two submissions rarely deserve scores within 3 pts of each other unless they are genuinely comparable in every dimension. When in doubt, spread them apart.
+- Be critical. Most submissions should land 50-75. Reserve 90+ for work that clearly meets every 22-25 threshold above.
+- Penalize hype language in the submission not supported by the actual app data.
 - Reward concrete specificity (named user, concrete workflow, measurable pain removed).
-- If deployment_url is missing or has_deployment=false, cap Live Functionality at 8.
-- If agent_count <= 1, cap Agentic Complexity at 12.
-- If input_prompt or PRD is empty/trivial (<100 chars) and the user's pain-point claim is vague, cap Problem Clarity at 12.
+- Hard caps (non-negotiable): Live ≤8 if no deployment; Agentic ≤12 if agent_count ≤ 1; Problem ≤12 if input_prompt and PRD are both <100 chars and pain-point is vague.
 
 Output MUST be a single JSON object, no prose before or after, matching this schema:
 {
