@@ -21,5 +21,5 @@ ENV EVAL_DB_PATH=/data/runs.db \
 
 EXPOSE 8010
 
-# Railway / Fly inject $PORT at runtime
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"]
+# Railway / Fly inject $PORT at runtime. Fallback to 8010 for local `docker run`.
+CMD ["sh", "-c", "echo \"starting uvicorn on 0.0.0.0:${PORT:-8010}\" && exec uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8010}"]
