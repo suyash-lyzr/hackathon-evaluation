@@ -30,7 +30,6 @@
   const exportBtn = $("export-btn");
   const exportCsvBtn = $("export-csv-btn");
   const deleteRunBtn = $("delete-run-btn");
-  const navNew = $("nav-new");
 
   let selectedFile = null;
   let currentRun = null;  // { run_id, created_at, file_name, count, results }
@@ -50,8 +49,6 @@
     loadAppsLeaderboard();
     showPanel("landing");
   });
-  navNew.addEventListener("click", (e) => { e.preventDefault(); backBtn.click(); });
-
   function resetUpload() {
     fileLabel.textContent = "Drop .xlsx or click to choose";
     fileMeta.textContent = "Team · Project · App ID · Pain · User · Impact";
