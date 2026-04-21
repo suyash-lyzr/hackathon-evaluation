@@ -16,12 +16,10 @@ justifications.
 
 ### Scoring
 
-- `raw_total` — OpenAI score against the rubric (0-100, absolute)
-- `percentile` — rank percentile within the uploaded batch (0-100, relative)
-- `final_score` — `0.7 * raw_total + 0.3 * percentile`
-
-Final keeps absolute quality dominant while giving the top builders a normalized lift so they
-separate cleanly from the pack.
+- `raw_total` / `final_score` — OpenAI rubric total (0-100, absolute). No batch-dependent
+  normalization — each submission is judged on its own merit against fixed anchors in the
+  system prompt (Exceptional / Solid / Middling / Weak / Poor).
+- `rank` — 1-indexed position within the uploaded batch, sorted by score.
 
 ## Run locally
 

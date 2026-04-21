@@ -222,6 +222,7 @@
       const sc = r.scores || {};
       const isTop = r.rank === 1;
       const hasErr = !!r.fetch_error;
+      const score = r.final_score ?? r.raw_total ?? 0;
       return `
         <tr class="${hasErr ? "error-row" : ""}">
           <td class="rank-cell ${isTop ? "top" : ""}">#${r.rank}</td>
@@ -233,9 +234,7 @@
           <td class="score-cell sub">${pickScore(sc,"agentic_complexity")}</td>
           <td class="score-cell sub">${pickScore(sc,"live_functionality")}</td>
           <td class="score-cell sub">${pickScore(sc,"business_impact")}</td>
-          <td class="score-cell">${r.raw_total ?? 0}</td>
-          <td><span class="pct-pill ${isTop?"top":""}">${(r.percentile ?? 0).toFixed(0)}</span></td>
-          <td class="final-cell ${isTop?"top":""}">${(r.final_score ?? 0).toFixed(1)}</td>
+          <td class="final-cell ${isTop?"top":""}">${Number(score).toFixed(0)}</td>
           <td><button class="row-action" data-idx="${idx}">Details</button></td>
         </tr>
       `;
@@ -305,15 +304,15 @@
         <div class="d-block-val">${esc(r.fetch_error || "Could not fetch from Architect.")}</div>
       </div>`;
 
+    const drawerScore = r.final_score ?? r.raw_total ?? 0;
     drawerContent.innerHTML = `
       <div class="d-head">
-        <div class="d-eyebrow">Rank #${r.rank} · final ${(r.final_score || 0).toFixed(1)} / 100</div>
+        <div class="d-eyebrow">Rank #${r.rank} · score ${Number(drawerScore).toFixed(0)} / 100</div>
         <h2 class="d-title">${esc(s.team_name || "—")} <em>— ${esc(s.project_title || "")}</em></h2>
         <div class="d-project">${esc(s.elevator_pitch || "")}</div>
         <div class="d-scoreline">
-          <div class="d-score-chip"><div class="d-score-lbl">Raw</div><div class="d-score-val">${r.raw_total ?? 0}</div></div>
-          <div class="d-score-chip"><div class="d-score-lbl">Percentile</div><div class="d-score-val">${(r.percentile ?? 0).toFixed(0)}</div></div>
-          <div class="d-score-chip"><div class="d-score-lbl">Final</div><div class="d-score-val">${(r.final_score ?? 0).toFixed(1)}</div></div>
+          <div class="d-score-chip"><div class="d-score-lbl">Score</div><div class="d-score-val">${Number(drawerScore).toFixed(0)}</div></div>
+          <div class="d-score-chip"><div class="d-score-lbl">Rank</div><div class="d-score-val">#${r.rank}</div></div>
           ${s.live_url ? `<div class="d-score-chip"><div class="d-score-lbl">Live</div><div class="d-score-val"><a href="${esc(s.live_url)}" target="_blank" rel="noopener" style="font-size:12px">open ↗</a></div></div>` : ""}
         </div>
       </div>
@@ -343,7 +342,7 @@
   exportCsvBtn.addEventListener("click", () => {
     if (!currentRun) return;
     const rows = [[
-      "rank","team","project","app_id","raw_total","percentile","final_score",
+      "rank","team","project","app_id","score",
       "problem_clarity","agentic_complexity","live_functionality","business_impact",
       "verdict","live_url","fetch_error"
     ]];
@@ -352,7 +351,7 @@
       const sc = r.scores || {};
       rows.push([
         r.rank, s.team_name, s.project_title, s.app_id,
-        r.raw_total, r.percentile, r.final_score,
+        r.final_score ?? r.raw_total ?? 0,
         sc.problem_clarity?.score ?? "",
         sc.agentic_complexity?.score ?? "",
         sc.live_functionality?.score ?? "",

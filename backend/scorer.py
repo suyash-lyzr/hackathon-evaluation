@@ -48,8 +48,15 @@ Rubric:
 3) Live Functionality (0-25): Grade the evidence that it actually works. A live deployment URL + successful commits + no recurring errors in the build log = high. No deployment or many errors = low.
 4) Business Impact Potential (0-25): If deployed tomorrow, would it save time/money or solve something at scale? Consider the quantified impact claimed by the submitter, but weight it against realism given what was actually built.
 
+Calibration anchors — use these to ground the total score (the per-criterion scores should add up to the anchor's total):
+- **95+ — Exceptional:** Multi-agent system with real handoffs solving a concrete, named pain. Live deployment works flawlessly. Quantified impact is credible, specific, and defensible.
+- **75 — Solid:** Clear problem for a specific user. 2-3 coordinating agents. Live URL works with minor rough edges. Impact claim is plausible but not deeply quantified.
+- **55 — Middling:** Generic use case or specific-but-niche. Single agent or shallow multi-agent. Deployment works but feels like a demo. Impact vague.
+- **35 — Weak:** Vague problem. Single-agent, no orchestration. Deployment broken or missing. Impact is marketing language.
+- **15 — Poor:** No clear problem, no deployment, no agents of substance.
+
 Scoring discipline:
-- Be critical. Most submissions should land 50-75. Reserve 85+ for genuinely exceptional work.
+- Be critical. Most submissions should land 50-75. Reserve 90+ for genuinely exceptional work.
 - Penalize hype language in the submission that is not supported by the actual app data.
 - Reward concrete specificity (named user, concrete workflow, measurable pain removed).
 - If deployment_url is missing or has_deployment=false, cap Live Functionality at 8.
@@ -160,38 +167,26 @@ async def score_submission(submission: dict, app_ctx: dict | None) -> dict:
         }
 
 
-def normalize_batch(results: list[dict]) -> list[dict]:
-    """Add normalized scores across the batch.
+def rank_batch(results: list[dict]) -> list[dict]:
+    """Rank submissions by their raw rubric total. No batch-dependent normalization.
 
-    - `raw_total`:        OpenAI rubric total (0-100). Absolute measure of quality.
-    - `percentile`:       rank percentile within the batch (0-100). Relative measure.
-    - `final_score`:      0.7 * raw_total + 0.3 * percentile. Rewards top builders with
-                          a relative bonus while keeping absolute quality dominant.
-    - `rank`:             1-indexed rank (1 = best) by final_score.
+    Sets on each entry:
+    - `raw_total`:   OpenAI rubric total (0-100). Absolute measure.
+    - `final_score`: same as raw_total (kept for frontend compatibility).
+    - `rank`:        1-indexed rank (1 = best).
     """
     if not results:
         return results
 
-    n = len(results)
     totals = [r.get("total", 0) for r in results]
-
-    # Rank by raw total (1 = best), tie-break stable
-    order = sorted(range(n), key=lambda i: totals[i], reverse=True)
-    percentile_of = {}
+    order = sorted(range(len(results)), key=lambda i: totals[i], reverse=True)
     for pos, i in enumerate(order):
-        percentile_of[i] = round(100 * (n - pos - 1) / max(1, n - 1), 1) if n > 1 else 100.0
-
-    # Compute final_score + re-rank on it
-    for i, r in enumerate(results):
-        raw = r.get("total", 0)
-        pct = percentile_of[i]
-        final = round(0.7 * raw + 0.3 * pct, 1)
-        r["raw_total"] = raw
-        r["percentile"] = pct
-        r["final_score"] = final
-
-    final_order = sorted(range(n), key=lambda i: results[i]["final_score"], reverse=True)
-    for pos, i in enumerate(final_order):
+        results[i]["raw_total"] = totals[i]
+        results[i]["final_score"] = totals[i]
         results[i]["rank"] = pos + 1
 
     return results
+
+
+# Backwards-compat alias (old callers may still reference normalize_batch)
+normalize_batch = rank_batch
