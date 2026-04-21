@@ -17,6 +17,7 @@
   const fileLabel  = $("file-label");
   const fileMeta   = $("file-meta");
   const runBtn     = $("run-btn");
+  const uploadBtn  = $("upload-btn");
   const appsList   = $("apps-list");
   const rightSub   = $("right-sub");
   const leaderboardTbody = $("leaderboard-tbody");
@@ -60,6 +61,10 @@
   // ── File pick ──────────────────────────────────────────────
   dropzone.addEventListener("click", (e) => {
     if (e.target.closest(".btn")) return;
+    fileInput.click();
+  });
+  uploadBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
     fileInput.click();
   });
   fileInput.addEventListener("change", (e) => {
