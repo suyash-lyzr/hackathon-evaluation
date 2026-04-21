@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Hackathon Evaluation — Lyzr Architect</title>
+<meta name="description" content="Grade every Architect build on evidence, not claims." />
+<link rel="icon" type="image/png" href="/lyzr.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="theme-dark">
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="/lyzr.png" alt="Lyzr" class="nav-lb-img" />
+      <span class="nav-brand">Lyzr Architect</span>
+      <span class="nav-vr"></span>
+      <span class="nav-product">Hackathon Judge</span>
+      <span class="nav-live"></span>
+    </a>
+    <div class="nav-links">
+      <a href="#" id="nav-new">New run</a>
+      <a href="/api/health" target="_blank">Health</a>
+    </div>
+  </div>
+</nav>
+
+<main class="app" id="app">
+  <!-- ========= LANDING ========= -->
+  <section class="panel panel-landing" id="panel-landing">
+    <div class="landing-left">
+      <div class="eyebrow">Architect · Hackathon 2026</div>
+      <h1 class="landing-title">Grade every build on <em>evidence</em>, not claims.</h1>
+      <p class="landing-sub">Upload the submissions sheet. We pull each app's PRD, chat log, and agent graph straight from Architect and grade with GPT-4.1 against the rubric below.</p>
+
+      <div class="rubric-panel">
+        <div class="rubric-panel-head">
+          <span class="rubric-eyebrow">Scoring criteria</span>
+          <span class="rubric-total">100 pts · 4 × 25</span>
+        </div>
+        <div class="rubric-grid">
+          <div class="r-item">
+            <div class="r-pts">25</div>
+            <div>
+              <div class="r-title">Problem Clarity</div>
+              <div class="r-desc">Specific, obvious-to-whom-and-why. Vague use cases score low.</div>
+            </div>
+          </div>
+          <div class="r-item">
+            <div class="r-pts">25</div>
+            <div>
+              <div class="r-title">Agentic Complexity</div>
+              <div class="r-desc">Multi-agent handoffs &amp; orchestration beat single-agent apps.</div>
+            </div>
+          </div>
+          <div class="r-item">
+            <div class="r-pts">25</div>
+            <div>
+              <div class="r-title">Live Functionality</div>
+              <div class="r-desc">Judged on the live URL. Simpler + working beats ambitious + broken.</div>
+            </div>
+          </div>
+          <div class="r-item">
+            <div class="r-pts">25</div>
+            <div>
+              <div class="r-title">Business Impact</div>
+              <div class="r-desc">Would it save time, make money, or solve something at scale?</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-card" id="dropzone">
+        <input type="file" id="file-input" accept=".xlsx" hidden />
+        <div class="upload-illus">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="upload-text">
+          <div class="upload-title" id="file-label">Drop .xlsx or click to choose</div>
+          <div class="upload-meta" id="file-meta">Team · Project · App ID · Pain · User · Impact</div>
+        </div>
+        <div class="upload-actions">
+          <a class="btn ghost" href="/api/sample-excel">Sample</a>
+          <button class="btn primary" id="run-btn" disabled>
+            Run
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="landing-right">
+      <div class="right-head">
+        <span class="eyebrow">Leaderboard</span>
+        <span class="right-sub" id="right-sub">Top apps across all runs</span>
+      </div>
+      <div class="apps-list" id="apps-list">
+        <div class="runs-empty">No runs yet. Upload a spreadsheet to get started.</div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ========= PROGRESS ========= -->
+  <section class="panel panel-progress hidden" id="panel-progress">
+    <div class="progress-spinner"></div>
+    <div>
+      <div class="eyebrow">Scoring</div>
+      <div class="progress-title">Fetching app data and grading…</div>
+      <div class="progress-sub">~6–12 s per submission · parallelism 5</div>
+    </div>
+  </section>
+
+  <!-- ========= RESULTS ========= -->
+  <section class="panel panel-results hidden" id="panel-results">
+    <div class="results-head">
+      <div>
+        <div class="eyebrow"><span id="results-meta">—</span></div>
+        <h2 class="results-title">Leaderboard</h2>
+      </div>
+      <div class="results-actions">
+        <button class="btn outline" id="back-btn">← Back</button>
+        <button class="btn outline" id="export-csv-btn">CSV</button>
+        <button class="btn outline" id="export-btn">JSON</button>
+        <button class="btn danger" id="delete-run-btn">Delete run</button>
+      </div>
+    </div>
+    <div class="leaderboard-wrap">
+      <table class="leaderboard">
+        <thead>
+          <tr>
+            <th>#</th><th>Team · Project</th>
+            <th>P</th><th>A</th><th>L</th><th>B</th>
+            <th>Raw</th><th>Pct</th><th>Final</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- DETAIL DRAWER -->
+<div class="drawer hidden" id="drawer">
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <div class="drawer-panel" id="drawer-panel">
+    <button class="drawer-close" id="drawer-close">×</button>
+    <div id="drawer-content"></div>
+  </div>
+</div>
+
+<script src="/app.js" defer></script>
+</body>
+</html>
