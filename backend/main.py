@@ -22,11 +22,14 @@ from fastapi.staticfiles import StaticFiles
 
 load_dotenv()
 
+from .bootstrap import bootstrap_runtime
 from .db import fetch_app
 from .extractor import build_evaluation_context
 from .parser import parse_submissions_xlsx
 from .scorer import score_submission, normalize_batch, RUBRIC
 from . import store
+
+bootstrap_runtime()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("hackathon-eval")

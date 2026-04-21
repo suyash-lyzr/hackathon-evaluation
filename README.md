@@ -88,6 +88,35 @@ Hit `/api/app/69e7161fff1ef4a43123e111` in your browser (once the server is runn
 points to the production MongoDB) to confirm the extractor is returning real data before running
 a full evaluation.
 
+## Deploy to Railway
+
+The repo is Dockerfile-ready. In Railway:
+
+1. **New Service → Deploy from GitHub repo** → pick `hackathon-evaluation`. Railway will use the `Dockerfile` automatically (the `railway.json` pins this).
+
+2. **Add a volume** at `/data` (Service → Settings → Volumes → New Volume, mount path `/data`). This persists `runs.db` and the decoded Mongo TLS cert across restarts.
+
+3. **Set these environment variables** (Service → Variables):
+
+   ```
+   DB_URL                = mongodb://user:pass@host:27017/...&tlsCAFile=/data/cred.pem&...
+   DB_NAME               = lyzr-engineer
+   OPENAI_API_KEY        = sk-...
+   OPENAI_MODEL          = gpt-4.1
+   MONGO_TLS_CA_B64      = <base64 of your cred.pem>
+   ```
+
+   To generate `MONGO_TLS_CA_B64` locally:
+   ```bash
+   base64 -i /Users/suyashmankar/Desktop/LYZR/cred.pem | tr -d '\n' | pbcopy
+   ```
+
+   On startup, `backend/bootstrap.py` decodes that env var to `/data/cred.pem` and rewrites the `tlsCAFile=...` segment of `DB_URL` to match — so the DB_URL you paste can keep any placeholder path; the code normalizes it.
+
+4. **Generate a public domain** (Settings → Networking → Generate Domain). Railway injects `$PORT`; the Dockerfile binds to it.
+
+5. **Lock it down.** This tool reads your whole prod DB. At minimum add HTTP basic auth (a short FastAPI middleware) or put it behind Cloudflare Access before sharing the URL.
+
 ## Notes on scoring discipline
 
 The system prompt instructs the judge to:
